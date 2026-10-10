@@ -1,0 +1,9 @@
+{
+  "display_name": "Story Arc Director / Сюжетный режиссёр",
+  "loading_order": 50,
+  "js": "index.js",
+  "css": "style.css",
+  "author": "OpenAI / community prototype",
+  "version": "0.3.0",
+  "generate_interceptor": "storyArcDirectorBeforeGenerate"
+}

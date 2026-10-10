@@ -1,0 +1,49 @@
+.sad-root { --sad-border: var(--SmartThemeBorderColor, #7778); --sad-gap: 9px; }
+.sad-root .inline-drawer-content { padding: 12px 8px; }
+.sad-root .sad-lead, .sad-root .sad-tip { opacity: .82; line-height: 1.45; margin: 5px 0 12px; font-size: .92em; }
+.sad-root label { display: block; margin: 9px 0 5px; }
+.sad-root textarea, .sad-root select { display: block; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; border: 1px solid var(--sad-border); border-radius: 6px; color: var(--SmartThemeBodyColor, inherit); background: var(--SmartThemeBlurTintColor, #333); }
+.sad-root .sad-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.sad-root .sad-check { display: flex; gap: 8px; align-items: center; margin: 12px 0; cursor: pointer; }
+.sad-root .sad-check input { margin: 0; }
+.sad-root button { cursor: pointer; white-space: normal; line-height: 1.3; }
+.sad-root button[disabled] { opacity: .4; cursor: default; }
+.sad-root .sad-main { display: block; width: 100%; padding: 10px; font-weight: 600; }
+.sad-root .sad-status { min-height: 1.3em; margin: 8px 0; font-size: .9em; white-space: pre-wrap; }
+.sad-root .sad-status[data-error="true"] { color: #f2a2a2; }
+.sad-root .sad-story { border: 1px solid var(--sad-border); border-radius: 9px; padding: 11px; margin-top: 12px; }
+.sad-root .sad-story[hidden] { display: none; }
+.sad-root .sad-story-title { font-size: 1.13em; font-weight: 750; margin: 0 0 6px; }
+.sad-root .sad-current-label { font-weight: 650; opacity: .85; }
+.sad-root .sad-scene { margin: 8px 0 14px; line-height: 1.45; white-space: pre-wrap; }
+.sad-root .sad-actions { display: flex; flex-wrap: wrap; gap: var(--sad-gap); margin-top: 8px; }
+.sad-root .sad-actions button { flex: 1 1 120px; padding: 7px; }
+.sad-root .sad-spoilers { border-top: 1px solid var(--sad-border); margin-top: 13px; padding-top: 11px; }
+.sad-root .sad-spoilers summary { cursor: pointer; font-weight: 600; }
+.sad-root .sad-plan-paragraph { margin: 10px 0; line-height: 1.45; white-space: pre-wrap; }
+.sad-root .sad-plan-heading { margin-top: 13px; font-weight: 700; }
+.sad-root .sad-footer { border-top: 1px solid var(--sad-border); padding-top: 8px; margin-top: 14px; }
+@media (max-width: 480px) { .sad-root .sad-grid { grid-template-columns: 1fr; gap: 1px; } }
+.sad-root #sad-review-label[hidden], .sad-root #sad-pace-label[hidden], .sad-root #sad-adaptive-label[hidden] { display: none; }
+.sad-root .sad-review-output { border-top: 1px solid var(--sad-border); padding: 6px 0 3px; margin-top: 10px; }
+.sad-root .sad-review-output[hidden] { display: none; }
+.sad-root .sad-review-state { margin-top: 4px; opacity: .8; font-size: .91em; }
+.sad-root #sad-decisions, .sad-root #sad-threads { white-space: pre-wrap; }
+
+/* v0.3 multi-genre selector */
+.sad-root .sad-genres { margin: 12px 0; border: 1px solid var(--sad-border); border-radius: 9px; padding: 9px 11px; min-width: 0; }
+.sad-root .sad-genres legend { font-weight: 700; padding: 0 5px; }
+.sad-root .sad-genres .sad-check { margin: 4px 0 6px; }
+.sad-root .sad-genre-group { margin: 6px 0; border-top: 1px solid var(--sad-border); padding-top: 7px; }
+.sad-root .sad-genre-group summary { font-weight: 600; cursor: pointer; }
+.sad-root .sad-genre-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+.sad-root label.sad-genre-chip { display: inline-flex; align-items: center; margin: 0; cursor: pointer; min-height: 30px; }
+.sad-root .sad-genre-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.sad-root .sad-genre-chip span { display: inline-block; border: 1px solid var(--sad-border); border-radius: 14px; padding: 5px 9px; }
+.sad-root .sad-genre-chip input:checked + span { border-color: var(--SmartThemeQuoteColor, #8fb7fb); background: rgba(111, 147, 201, .22); font-weight: 700; }
+.sad-root .sad-genre-chip input:focus-visible + span { outline: 2px solid var(--SmartThemeQuoteColor, #8fb7fb); outline-offset: 2px; }
+.sad-root .sad-dim { opacity: .55; }
+.sad-root .sad-genre-footer { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin: 10px 0 3px; }
+.sad-root .sad-genre-footer button { padding: 7px; }
+.sad-root .sad-genre-summary { font-size: .86em; opacity: .8; margin: 6px 0; }
+.sad-root #sad-rel-changes, .sad-root #sad-rel-unresolved { white-space: pre-wrap; }

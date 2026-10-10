@@ -1,0 +1,102 @@
+<div id="sad-root" class="sad-root">
+  <div class="inline-drawer">
+    <div class="inline-drawer-toggle inline-drawer-header">
+      <b>🎭 Сюжетный режиссёр v0.3</b>
+      <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+    </div>
+    <div class="inline-drawer-content">
+      <p class="sad-lead">История с завязкой и финалом. Умный режиссёр следит за выбором игрока и развивает последствия вместо жёсткого сценария.</p>
+      <label for="sad-idea">Задумка, тема или пожелания</label>
+      <textarea id="sad-idea" rows="3" placeholder="Например: романтический детектив, где исчезают воспоминания; не делать финал обязательно счастливым..."></textarea>
+      <fieldset class="sad-genres">
+        <legend>Жанры сюжета</legend>
+        <label class="sad-check" for="sad-genre-auto"><input id="sad-genre-auto" type="checkbox" checked> Автоподбор по карточке, чату и пожеланиям</label>
+        <p class="sad-tip">Отключите автоподбор, чтобы выбрать до четырёх жанров. Профессия персонажа не навязывает жанр.</p>
+        <div id="sad-genre-list"></div>
+        <div class="sad-genre-footer">
+          <span id="sad-genre-count">Автоподбор</span>
+          <button type="button" id="sad-suggest-genres" class="menu_button">✨ Предложить жанры</button>
+        </div>
+        <p class="sad-tip">Изменение жанров повлияет на следующий создаваемый сюжет, а не перепишет текущий.</p>
+      </fieldset>
+      <div class="sad-grid">
+        <label for="sad-mode">Режим продвижения
+          <select id="sad-mode">
+            <option value="smart">🧠 Умный (по событиям)</option>
+            <option value="count">🔢 По числу ответов</option>
+            <option value="manual">✋ Вручную</option>
+          </select>
+        </label>
+        <label for="sad-review-every" id="sad-review-label">Проверять каждые N ответов ИИ
+          <select id="sad-review-every">
+            <option value="1">1 — каждую реплику</option>
+            <option value="2">2 — экономнее</option>
+            <option value="3">3 — редко</option>
+            <option value="5">5 — минимально</option>
+          </select>
+        </label>
+        <label for="sad-pace" id="sad-pace-label" hidden>Ответов ИИ на акт
+          <select id="sad-pace">
+            <option value="2">2 — короткий</option>
+            <option value="4" selected>4 — средний</option>
+            <option value="7">7 — длинный</option>
+            <option value="12">12 — эпический</option>
+          </select>
+        </label>
+      </div>
+      <label class="sad-check" for="sad-adaptive" id="sad-adaptive-label"><input id="sad-adaptive" type="checkbox" checked> Автоматически перестраивать будущие сцены при значимых отклонениях</label>
+      <p class="sad-tip">Умный режим делает дополнительные запросы к вашей модели. При частоте 1: обычно один анализ на ответ ИИ, при большой развилке — ещё один запрос на перепланирование.</p>
+      <button type="button" id="sad-generate" class="menu_button sad-main">✨ Создать сюжет для этого чата</button>
+      <div id="sad-status" class="sad-status" aria-live="polite"></div>
+
+      <section id="sad-story" class="sad-story" hidden>
+        <div class="sad-story-title" id="sad-title"></div>
+        <div id="sad-current-label" class="sad-current-label"></div>
+        <div id="sad-story-genres" class="sad-genre-summary"></div>
+        <p id="sad-scene" class="sad-scene"></p>
+        <div class="sad-actions">
+          <button type="button" id="sad-prev" class="menu_button" title="Предыдущий акт">← Назад</button>
+          <button type="button" id="sad-next" class="menu_button" title="Следующий акт">Далее →</button>
+        </div>
+        <div class="sad-actions">
+          <button type="button" id="sad-review-now" class="menu_button">🧠 Проанализировать сейчас</button>
+          <button type="button" id="sad-pause" class="menu_button">⏸ Пауза</button>
+        </div>
+        <div class="sad-actions">
+          <button type="button" id="sad-finish" class="menu_button">⇥ Перейти к финалу</button>
+        </div>
+        <section id="sad-review-output" class="sad-review-output" hidden>
+          <div class="sad-plan-heading">Последняя оценка сцены</div>
+          <div id="sad-review-state" class="sad-review-state"></div>
+          <p id="sad-review-reason" class="sad-plan-paragraph"></p>
+        </section>
+        <details class="sad-spoilers">
+          <summary>Память режиссёра (спойлеры)</summary>
+          <div class="sad-plan-heading">Что уже случилось</div>
+          <p id="sad-memory" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Решения игрока</div>
+          <p id="sad-decisions" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Неоконченные линии</div>
+          <p id="sad-threads" class="sad-plan-paragraph"></p>
+          <p id="sad-revisions" class="sad-review-state"></p>
+          <div class="sad-plan-heading">Статус отношений (только подтверждённое)</div>
+          <p id="sad-rel-status" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Текущая динамика</div>
+          <p id="sad-rel-dynamics" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Произошедшие изменения</div>
+          <p id="sad-rel-changes" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Нерешённые проблемы</div>
+          <p id="sad-rel-unresolved" class="sad-plan-paragraph"></p>
+        </details>
+        <details class="sad-spoilers">
+          <summary>Весь сюжетный план (спойлеры)</summary>
+          <div id="sad-full-plan"></div>
+        </details>
+        <div class="sad-actions sad-footer">
+          <button type="button" id="sad-remove" class="menu_button">Удалить сюжет из чата</button>
+        </div>
+      </section>
+      <p class="sad-tip">Карточка персонажа задаёт характер, отношения и профессию, но не жанр. Сюжет, память и оценки хранятся в метаданных этого чата. Они не вставляются отдельными сообщениями. Финал считается достигнутым только после смысловой проверки или ручного подтверждения.</p>
+    </div>
+  </div>
+</div>

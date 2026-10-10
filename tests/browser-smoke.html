@@ -1,0 +1,48 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"></head><body>
+<div id="extensions_settings2"></div>
+<script>
+const listeners = {};
+const plot = {title: 'Маяк памяти', premise: 'Город теряет память', centralConflict:'Спасти архив',hiddenTruth:'Хранитель скрыл правду', resolution:'Архив спасён с ценой', acts:Array.from({length:5},(_,i)=>({scene:`Сцена ${i+1}`,goal:`Цель ${i+1}`,obstacle:'Тень',clue:'Записка',bridge:'Новая улика'}))};
+window.mock = {
+  reviewMode: 'complete',
+  rawCalls: [],
+  changeChat(){ this.ctx.chatMetadata = {}; this.ctx.chat = []; this.ctx.eventSource.emit('CHAT_CHANGED'); },
+  emit(type){ (listeners[type]||[]).forEach(fn => fn()); },
+  async addResponse(text='Получен ключ.') {
+      this.ctx.chat.push({ is_user:true, mes:'Я осматриваю комнату' }, { is_user:false, mes:text });
+      this.emit('CHARACTER_MESSAGE_RENDERED');
+  },
+};
+const ctx = {
+    extensionSettings:{}, chatMetadata:{}, chat:[], characterId:0, groupId:null,
+    characters:[{ data:{description:'Хранитель маяка и парень игрока, спортсмен',personality:'Заботливый и упрямый', scenario:'Пара вместе уже 3 года, расследует тайну маяка'} }],
+    name1:'Игрок',name2:'Хранитель',
+    event_types:{APP_INITIALIZED:'APP_INITIALIZED',CHARACTER_MESSAGE_RENDERED:'CHARACTER_MESSAGE_RENDERED',CHAT_CHANGED:'CHAT_CHANGED'},
+    eventSource:{on(type,fn){(listeners[type]??=[]).push(fn)}, emit(type){(listeners[type]||[]).forEach(fn => fn())}},
+    saveMetadata:async()=>{}, saveSettingsDebounced:()=>{},
+    setExtensionPrompt:(key,text)=>{window.mock.prompt=text;},
+    renderExtensionTemplateAsync:async()=>(await (await fetch('../settings.html')).text()),
+    generateRaw:async({prompt})=>{
+      window.mock.rawCalls.push(prompt);
+      if(prompt.includes('Ты предлагаешь игроку')) return JSON.stringify({genres:['romance','slice_of_life','sport'],reason:'Пара давно вместе, спортсменство лишь часть его жизни.'});
+      if(prompt.includes('Придумай ОРИГИНАЛЬНЫЙ')) return JSON.stringify(plot);
+      if(prompt.includes('Ты — НЕ персонаж')) return JSON.stringify({
+        sceneComplete:window.mock.reviewMode!=='incomplete',
+        endingComplete:window.mock.reviewMode==='final', confidence:0.94,
+        reason:'Ключ найден, сцена фактически разрешена',summary:'Игрок нашёл ключ и открыл дверь',
+        decisions:['Решил открыть дверь'],consequences:['Открылся тайный ход'],openThreads:['Где архив?'],
+        deviation:window.mock.reviewMode==='branch'?'major':'none',deviationReason:'Герой уничтожил архив вопреки исходному плану',
+        relationship:{status:'Пара встречается 3 года',dynamics:'Поддерживают друг друга',changes:['Помог с тренировками'],unresolved:[]}
+      });
+      if(prompt.includes('Перестрой оставшуюся часть')) {
+        const i = ctx.chatMetadata.story_arc_director.stageIndex;
+        return JSON.stringify({centralConflict:'Найти другой способ спасти город',hiddenTruth:'Архив никогда не был полным',resolution:'Спасение памяти через людей',remainingActs:plot.acts.slice(i).map((a,k)=>({...a,scene:'Альтернативная сцена '+(k+1)}))});
+      }
+      throw Error('Unknown mock prompt');
+    },
+};
+window.mock.ctx=ctx;
+window.SillyTavern={getContext:()=>ctx};
+</script>
+<script type="module" src="../index.js"></script>
+</body></html>

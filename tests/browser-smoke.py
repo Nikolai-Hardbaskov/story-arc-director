@@ -7,7 +7,10 @@ root = Path(__file__).resolve().parents[1]
 html = (root / 'tests/browser-smoke.html').read_text()
 settings = (root / 'settings.html').read_text()
 core = (root / 'story-core.mjs').read_bytes()
-index = (root / 'index.js').read_text().replace("'./story-core.mjs'", f"'data:text/javascript;base64,{b64encode(core).decode()}'")
+core_url = f'data:text/javascript;base64,{b64encode(core).decode()}'
+plot_helper = (root / 'plot-request.mjs').read_text().replace("'./story-core.mjs'", repr(core_url))
+plot_helper_url = f'data:text/javascript;base64,{b64encode(plot_helper.encode()).decode()}'
+index = (root / 'index.js').read_text().replace("'./story-core.mjs'", repr(core_url)).replace("'./plot-request.mjs'", repr(plot_helper_url))
 html = html.replace('<script type="module" src="../index.js"></script>', '')
 html = html.replace("(await (await fetch('../settings.html')).text())", repr(settings))
 
@@ -34,10 +37,13 @@ with sync_playwright() as p:
     assert not page.is_checked('#sad-genre-auto')
     page.locator('input.sad-genre-option[value="sport"]').uncheck(force=True)
     assert page.locator('input.sad-genre-option:checked').count() == 2
+    page.evaluate('() => {mock.invalidPlanOnce=true}')
     page.click('#sad-generate')
     page.wait_for_function("() => Boolean(mock.ctx.chatMetadata.story_arc_director)")
     page.wait_for_function("() => !document.querySelector('#sad-generate').disabled")
     assert 'Маяк памяти' in page.inner_text('#sad-title')
+    assert 'после исправления формата' in page.inner_text('#sad-status')
+    assert sum('Придумай ОРИГИНАЛЬНЫЙ' in p for p in page.evaluate('mock.rawCalls')) == 2
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.genres') == ['romance','slice_of_life']
     planner = page.evaluate('mock.rawCalls.find(p => p.includes("Придумай ОРИГИНАЛЬНЫЙ"))')
     assert 'парень игрока' in planner and 'спортсмен' in planner

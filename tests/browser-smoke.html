@@ -5,6 +5,7 @@ const listeners = {};
 const plot = {title: 'Маяк памяти', premise: 'Город теряет память', centralConflict:'Спасти архив',hiddenTruth:'Хранитель скрыл правду', resolution:'Архив спасён с ценой', acts:Array.from({length:5},(_,i)=>({scene:`Сцена ${i+1}`,goal:`Цель ${i+1}`,obstacle:'Тень',clue:'Записка',bridge:'Новая улика'}))};
 window.mock = {
   reviewMode: 'complete',
+  invalidPlanOnce: false,
   rawCalls: [],
   changeChat(){ this.ctx.chatMetadata = {}; this.ctx.chat = []; this.ctx.eventSource.emit('CHAT_CHANGED'); },
   emit(type){ (listeners[type]||[]).forEach(fn => fn()); },
@@ -25,7 +26,10 @@ const ctx = {
     generateRaw:async({prompt})=>{
       window.mock.rawCalls.push(prompt);
       if(prompt.includes('Ты предлагаешь игроку')) return JSON.stringify({genres:['romance','slice_of_life','sport'],reason:'Пара давно вместе, спортсменство лишь часть его жизни.'});
-      if(prompt.includes('Придумай ОРИГИНАЛЬНЫЙ')) return JSON.stringify(plot);
+      if(prompt.includes('Придумай ОРИГИНАЛЬНЫЙ')) {
+        if (window.mock.invalidPlanOnce) { window.mock.invalidPlanOnce = false; return JSON.stringify(plot).slice(0, -100); }
+        return JSON.stringify(plot);
+      }
       if(prompt.includes('Ты — НЕ персонаж')) return JSON.stringify({
         sceneComplete:window.mock.reviewMode!=='incomplete',
         endingComplete:window.mock.reviewMode==='final', confidence:0.94,

@@ -1,11 +1,12 @@
 import {
     ACT_NAMES, GENRES, GENRE_GROUPS, GENRE_LIMIT, normalizeGenres, storyGenres,
-    buildGenreSuggestionPrompt, parseGenreSuggestion,
+    buildGenreSuggestionPrompt, parseGenreSuggestion, extractCharacterFacts, validatePlotFit,
     parsePlot, generatePlannerPrompt, buildInjection,
     countAssistantReplies, advanceByCount, getMode, getReviewInterval,
     fingerprintChat, shouldReview, buildReviewPrompt, parseReview, applyReview,
     shouldReplan, buildReplanPrompt, parseReplan, applyReplan,
 } from './story-core.mjs';
+import { requestStoryPlot } from './plot-request.mjs';
 
 const KEY = 'story_arc_director';
 const INJECTION_KEY = 'story_arc_director_current_beat';
@@ -91,20 +92,14 @@ function writeParagraph(parent, heading, value) {
     parent.append(p);
 }
 
-function getCharacterCanon(ctx) {
+function getCharacterFacts(ctx) {
     const character = ctx.characters?.[ctx.characterId];
-    if (!character) return '';
-    const card = character.data ?? character;
-    const sections = [
-        ['Имя {{char}}', ctx.name2 || card.name || character.name],
-        ['Имя {{user}}', ctx.name1],
-        ['Описание', card.description], ['Личность и привычки', card.personality],
-        ['Исходный сценарий / отношения', card.scenario],
-        ['Дополнительные признаки', card.creator_notes || ''],
-    ];
-    return sections.filter(([, value]) => typeof value === 'string' && value.trim())
-        .map(([label, value]) => `${label}: ${value.trim().slice(0, 1200)}`)
-        .join('\n').slice(0, 3600);
+    if (!character) return { canon: '', relationship: null };
+    return extractCharacterFacts(character, { charName: ctx.name2 || character.name, userName: ctx.name1 });
+}
+
+function getCharacterCanon(ctx) {
+    return getCharacterFacts(ctx).canon;
 }
 
 function buildGenreSelector() {
@@ -242,22 +237,15 @@ function render() {
 }
 
 function getStoryContext(ctx) {
-    const blocks = [];
-    if (ctx.name1) blocks.push(`Игрок: ${String(ctx.name1).slice(0, 100)}`);
-    if (ctx.name2) blocks.push(`Персонаж: ${String(ctx.name2).slice(0, 100)}`);
-    const character = ctx.characters?.[ctx.characterId];
-    if (character) {
-        const card = character.data ?? character;
-        for (const [label, field] of [['Описание', 'description'], ['Характер', 'personality'], ['Сценарий', 'scenario']]) {
-            if (card[field]) blocks.push(`${label}: ${String(card[field]).slice(0, 1100)}`);
-        }
-    }
+    const facts = getCharacterFacts(ctx);
+    const blocks = [facts.canon.slice(0, 4400)];
     const recent = (Array.isArray(ctx.chat) ? ctx.chat : [])
         .filter(m => m && typeof m.mes === 'string' && !m.is_system)
-        .slice(-12)
+        .slice(-7)
         .map(m => `${String(m.name || (m.is_user ? 'Игрок' : 'Персонаж')).slice(0, 60)}: ${m.mes.slice(0, 250)}`);
-    if (recent.length) blocks.push(`Последние события:\n${recent.join('\n')}`);
-    return blocks.join('\n\n').slice(0, 5900);
+    if (recent.length) blocks.push(`Последние события:
+${recent.join('\n')}`);
+    return blocks.filter(Boolean).join('\n\n').slice(0, 5900);
 }
 
 async function suggestGenres() {
@@ -334,7 +322,8 @@ async function generateStory() {
     const adaptive = root.querySelector('#sad-adaptive').checked;
     const ownedMetadata = ctx.chatMetadata;
     const replyCount = countAssistantReplies(ctx.chat);
-    const prompt = generatePlannerPrompt({ idea, genres, context: getStoryContext(ctx), canon: getCharacterCanon(ctx) });
+    const facts = getCharacterFacts(ctx);
+    const prompt = generatePlannerPrompt({ idea, genres, context: getStoryContext(ctx), canon: facts.canon });
     if (typeof ctx.generateRaw !== 'function') {
         showStatus('В этой версии SillyTavern недоступен generateRaw().', true);
         return;
@@ -343,11 +332,26 @@ async function generateStory() {
     render();
     showStatus('Придумываю пять актов и логическую развязку…');
     try {
-        const raw = await ctx.generateRaw({
-            systemPrompt: 'Ты — драматург интерактивных историй. Ответ строго валидный JSON без Markdown. Уважай свободу игрока.',
+        let { plot, attempts } = await requestStoryPlot({
+            generateRaw: options => ctx.generateRaw(options),
             prompt,
+            onRetry: reason => showStatus(reason === 'repair'
+                ? 'Ответ модели содержит ошибку формата. Пытаюсь восстановить JSON…'
+                : 'Ответ модели неполный. Повторяю запрос с более коротким планом…'),
         });
-        const plot = parsePlot(raw);
+        let issues = validatePlotFit(plot, { relationship: facts.relationship, genres, idea });
+        // Fail closed: do not save a new plan that obviously contradicts the card or genre.
+        if (issues.length) {
+            showStatus('Проверка нашла противоречие карточке или жанрам. Прошу модель исправить план…');
+            ({ plot } = await requestStoryPlot({
+                generateRaw: options => ctx.generateRaw(options),
+                maxAttempts: 2,
+                onRetry: () => showStatus('Исправленный план снова пришёл в неверном формате. Повторяю запрос…'),
+                prompt: `${prompt}\n\nПРЕДЫДУЩИЙ ВАРИАНТ НЕ ПОДХОДИТ:\n${issues.join('\n')}\nНовый план обязан исправить ошибки. Не копируй их из старого варианта.`,
+            }));
+            issues = validatePlotFit(plot, { relationship: facts.relationship, genres, idea });
+            if (issues.length) throw new Error(`План не прошёл проверку: ${issues.join(' ')}`);
+        }
         if (context().chatMetadata !== ownedMetadata) {
             showStatus('За время генерации вы сменили чат; план не был записан в другой диалог.', true);
             return;
@@ -356,13 +360,15 @@ async function generateStory() {
             plot, idea, genres, genre: genres[0] || 'auto', pace, mode, auto: mode !== 'manual', reviewEvery, adaptive,
             stageIndex: 0, atAssistantCount: replyCount, lastReviewCount: replyCount,
             lastReviewFingerprint: fingerprintChat(ctx.chat),
-            paused: false, completed: false, memory: { summary: '', decisions: [], consequences: [], openThreads: [], relationship: { status: '', dynamics: '', changes: [], unresolved: [] } },
+            paused: false, completed: false,
+            canonRelationshipStatus: facts.relationship?.status || '',
+            memory: { summary: '', decisions: [], consequences: [], openThreads: [], relationship: { status: facts.relationship?.status || '', dynamics: '', changes: [], unresolved: [] } },
             reviewLog: [], revisions: [],
             id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
             createdAt: new Date().toISOString(),
         };
         await saveStory(story);
-        showStatus('Сюжет сохранён. Режиссёр будет отслеживать развилки и завершение сцен.');
+        showStatus(attempts > 1 ? 'Сюжет сохранён после исправления формата. Режиссёр будет отслеживать сцены.' : 'Сюжет сохранён. Режиссёр будет отслеживать развилки и завершение сцен.');
     } catch (error) {
         console.error('[Story Arc Director] Plot generation failed:', error);
         showStatus(`Ошибка создания сюжета: ${error instanceof Error ? error.message : String(error)}`, true);
@@ -482,11 +488,17 @@ async function analyzeCurrent(force = false) {
                 prompt: buildReplanPrompt(reviewed, review.deviationReason || review.reason, getCharacterCanon(ctx)),
             });
             const replan = parseReplan(branchRaw, reviewed.stageIndex);
+            const candidate = applyReplan(reviewed, replan, totalReplies, review.deviationReason || review.reason);
+            const replanIssues = validatePlotFit(candidate.plot, {
+                relationship: getCharacterFacts(ctx).relationship,
+                genres: storyGenres(reviewed), idea: reviewed.idea || '',
+            });
+            if (replanIssues.length) throw new Error(`Перестройка противоречит карточке или жанрам: ${replanIssues.join(' ')}`);
             if (context().chatMetadata !== metadata || getStory() !== reviewed || fingerprintChat(context().chat) !== fingerprint) {
                 showStatus('Диалог изменился во время перестройки; старый план не был перезаписан.');
                 return;
             }
-            await saveStory(applyReplan(reviewed, replan, totalReplies, review.deviationReason || review.reason));
+            await saveStory(candidate);
             notice += ' Будущие сцены перестроены с учётом выбора игрока.';
         }
         showStatus(notice);

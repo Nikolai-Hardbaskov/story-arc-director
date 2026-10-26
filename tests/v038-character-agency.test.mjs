@@ -23,10 +23,10 @@ const makePlot = (overrides = {}) => ({
 const story = { plot:makePlot(), stageIndex:1, genres:['romance','slice_of_life'],memory:{},paused:false,completed:false };
 
 test('shared policy protects both character independence and player freedom', () => {
-  assert.match(CHARACTER_AGENCY_POLICY, /мотивами, желаниями/);
-  assert.match(CHARACTER_AGENCY_POLICY, /вправе соглашаться, отказывать, спорить/);
-  assert.match(CHARACTER_AGENCY_POLICY, /НЕ обязательны/);
-  assert.match(CHARACTER_AGENCY_POLICY, /не получает права писать реплики/);
+  assert.match(CHARACTER_AGENCY_POLICY, /motives, desires/);
+  assert.match(CHARACTER_AGENCY_POLICY, /may agree, refuse, argue/);
+  assert.match(CHARACTER_AGENCY_POLICY, /not mandatory/);
+  assert.match(CHARACTER_AGENCY_POLICY, /must NEVER author \{\{user\}\}/);
   assert.doesNotMatch(CHARACTER_AGENCY_POLICY, /Леон|Вильгельмин|отмен[а-я]* поездк/i);
 });
 
@@ -38,8 +38,8 @@ test('all four operating stages carry character agency safeguards', () => {
     ['replanning',buildReplanPrompt(story,'Произошло изменение событий','Черты персонажа')],
   ]) {
     assert.ok(prompt.includes(CHARACTER_AGENCY_POLICY), `${stage} lost agency policy`);
-    assert.match(prompt,/не заставляй|Не заставляй/);
-    assert.match(prompt,/не.*навязывай|не.*называй|не создавай|Не создавай/);
+    assert.match(prompt,/Do not make/);
+    assert.match(prompt,/Do not force|Never/);
   }
 });
 

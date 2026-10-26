@@ -34,7 +34,7 @@ test('switching active persona changes binding and prevents use of old story',()
 });
 test('older or minimal persona gives name but never steals other descriptions',()=>{
   const value=getActivePersona(makeContext('Игрок','',{'other.png':{description:'ОЧЕНЬ СЕКРЕТНО'}}));
-  assert.match(value.canon,/У активной персоны нет текстового описания/);
+  assert.match(value.canon,/No active persona description is available/);
   assert.doesNotMatch(value.canon,/ОЧЕНЬ СЕКРЕТНО/);
 });
 test('scene analysis includes only confirmed events and possible NPC action',()=>{
@@ -43,7 +43,7 @@ test('scene analysis includes only confirmed events and possible NPC action',()=
   assert.deepEqual(updated.actProgress.confirmed,['Герой предложил прогулку']);
   assert.deepEqual(updated.actProgress.pending,['Ответ игрока пока неизвестен']);
   assert.equal(updated.actProgress.nextOpportunity,'Герой может предложить чай');
-  assert.match(buildInjection(updated,'Имя игрока: Мира'),/Подтверждённые события текущего акта/);
+  assert.match(buildInjection(updated,'Имя игрока: Мира'),/Confirmed events in this act/);
   assert.match(buildReviewPrompt(updated,[],''),/progress.confirmed/);
 });
 test('an act transition records reason and resets current-act checks without losing memory',()=>{
@@ -67,7 +67,7 @@ test('progress rejects invalid values rather than putting model object in UI',()
 test('persona source is explicitly treated as non-controlling biographical context',()=>{
   const canon=getActivePersona(makeContext('Мира','Пуглива, боится высоты')).canon;
   const prompt=generatePlannerPrompt({canon,genres:['romance'],context:''});
-  assert.match(prompt,/не приписывай пользователю/i);
+  assert.match(prompt,/NEVER determine \{\{user\}\}/i);
   assert.match(prompt,/Мира/);
 });
 

@@ -46,19 +46,19 @@ test('suggestion validator supports up to eight nonduplicate known genres', () =
 
 test('multi-genre planner respects main focus, player agency and no forced genre everywhere', () => {
   const prompt = generatePlannerPrompt({ genres: ['romance','slice_of_life','sport','comedy','adventure','historical','fantasy','horror'] });
-  assert.match(prompt,/восьми жанров/);
-  assert.match(prompt,/не пытайся использовать все восемь в каждом акте/);
-  assert.match(prompt,/не подменяй уютную повседневность/i);
-  assert.match(prompt,/Не приписывай пользователю конкретных поступков/i);
+  assert.match(prompt,/eight genres/);
+  assert.match(prompt,/Even with eight genres, distribute them organically/);
+  assert.match(prompt,/Never replace cozy daily life/i);
+  assert.match(prompt,/NEVER determine \{\{user\}\}/i);
 });
 
-test('manifest, visible heading, readme match in v0.3.10 and no atmosphere controls', () => {
+test('manifest, visible heading, readme match in v0.3.11 and no atmosphere controls', () => {
   const manifest = JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
   const html = readFileSync(resolve(root,'settings.html'),'utf8');
   const readme = readFileSync(resolve(root,'README.md'),'utf8');
-  assert.equal(manifest.version,'0.3.10');
-  assert.match(html,/Сюжетный режиссёр v0\.3\.10/);
-  assert.ok(readme.startsWith('# Story Arc Director v0.3.10'));
+  assert.equal(manifest.version,'0.3.11');
+  assert.match(html,/Сюжетный режиссёр v0\.3\.11/);
+  assert.ok(readme.startsWith('# Story Arc Director v0.3.11'));
   assert.match(html,/до восьми жанров/i);
   assert.match(html,/sad-genre-search/);
   assert.doesNotMatch(html,/sad-atmosphere|Выбор атмосферы/);

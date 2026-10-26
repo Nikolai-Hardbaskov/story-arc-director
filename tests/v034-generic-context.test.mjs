@@ -19,8 +19,8 @@ test('unrelated characters have their real identities and relationships in plann
   assert.match(prompt, /Мила/);
   assert.match(prompt, /Саша/);
   assert.doesNotMatch(prompt, /Вильгельмин|Леон/);
-  assert.match(prompt, /если они ещё не знакомы или не состоят в отношениях/);
-  assert.match(prompt, /не выдумывай общую жизнь/);
+  assert.match(prompt, /otherwise do not invent a shared romantic history/);
+  assert.match(prompt, /otherwise do not invent a shared romantic history/);
 });
 
 test('replanning uses player/character placeholders with no fixed names', () => {

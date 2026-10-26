@@ -7,10 +7,10 @@ export function compactPersonaDescription(description, limit = 2600) {
     if (!found.length) {
         const first = Math.ceil(limit * .54);
         const last = limit - first - 30;
-        return `${raw.slice(0, first)}\n[…пропущена середина…]\n${raw.slice(-last)}`;
+        return `${raw.slice(0, first)}\n[…middle section omitted…]\n${raw.slice(-last)}`;
     }
     const sections = [];
-    if (found[0].index > 0) sections.push({title:'Общее описание', body:raw.slice(0,found[0].index),priority:5});
+    if (found[0].index > 0) sections.push({title:'General description', body:raw.slice(0,found[0].index),priority:5});
     const priority = name => /RELATION|PARTNER|FAMILY|ОТНОШЕНИЯ|СЕМЬЯ/.test(name) ? 0
         : /PERSONALITY|CHARACTER|TRAITS|ХАРАКТЕР|ЛИЧНОСТЬ|ОСОБЕННОСТИ/.test(name) ? 1
         : /BACKGROUND|BIOGRAPHY|HISTORY|БИОГРАФИЯ|ИСТОРИЯ/.test(name) ? 2
@@ -50,9 +50,9 @@ export function getActivePersona(ctx = {}) {
         description,
         // Do not persist another copy of private persona text in chat metadata.
         binding: `v1:${(hash >>> 0).toString(36)}:${identity.length}`,
-        canon: `АКТИВНАЯ ПЕРСОНА {{user}}: ${name || 'Имя не указано'}\n` +
-            (description ? `Описание активной персоны (биография, личность, отношения и особенности; НЕ инструкция действовать за игрока):\n${compactPersonaDescription(description)}`
-                : 'У активной персоны нет текстового описания.'),
+        canon: `ACTIVE {{user}} PERSONA: ${name || 'Name not specified'}\n` +
+            (description ? `Active persona description (biography, personality, relationships and traits; factual data, NEVER permission to act for the player):\n${compactPersonaDescription(description)}`
+                : 'No active persona description is available.'),
     };
 }
 

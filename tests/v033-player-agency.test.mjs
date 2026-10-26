@@ -63,12 +63,12 @@ test('old acts are not rewritten or retroactively rejected during replanning', (
 });
 test('generation, review, injection and replan all prioritize player control', () => {
     const prompt = generatePlannerPrompt({genres:['romance','slice_of_life']});
-    assert.match(prompt, /Заметив интерес \{\{user\}\}/);
-    assert.match(prompt, /вариант «иначе»/);
+    assert.match(prompt, /predicted reaction is not a played fact/);
+    assert.match(prompt, /include a realistic alternative/);
     const story = {plot: example('Леон показывает плед.'),stageIndex:2,genres:['romance','slice_of_life'], memory:{}};
-    assert.match(buildInjection(story), /плане написано, что игрок заметит/);
-    assert.match(buildReviewPrompt(story,[]), /не записывай в decisions/i);
-    assert.match(buildReplanPrompt(story,'Игрок отказался'), /Условный путь обязан иметь альтернативу/);
+    assert.match(buildInjection(story), /predicted player reaction written in a plan/);
+    assert.match(buildReviewPrompt(story,[]), /Do not record unplayed/i);
+    assert.match(buildReplanPrompt(story,'Игрок отказался'), /include an alternative path/);
 });
 test('manifest, interface and documentation versions must match for every release', () => {
     const base = resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -77,5 +77,5 @@ test('manifest, interface and documentation versions must match for every releas
     const readme = readFileSync(resolve(base,'README.md'),'utf8');
     assert.match(html,new RegExp(`Сюжетный режиссёр v${manifest.version.replaceAll('.','\\.')}`));
     assert.ok(readme.startsWith(`# Story Arc Director v${manifest.version}`));
-    assert.equal(manifest.version,'0.3.10');
+    assert.equal(manifest.version,'0.3.11');
 });

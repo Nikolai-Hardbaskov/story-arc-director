@@ -48,7 +48,7 @@ test('repairs a malformed JSON response with a second API call', async () => {
     });
     assert.equal(result.attempts,2);
     assert.equal(calls.length,2);
-    assert.match(calls[1].prompt,/НЕПРАВИЛЬНЫЙ ОТВЕТ/);
+    assert.match(calls[1].prompt,/broken_json_data/);
 });
 
 test('truncated response regenerates compact plan instead of trying to copy incomplete acts',async()=>{
@@ -58,8 +58,8 @@ test('truncated response regenerates compact plan instead of trying to copy inco
         generateRaw:async ({prompt})=>{prompts.push(prompt);return prompts.length===1?valid.slice(0,-200):valid;},
     });
     assert.equal(result.attempts,2);
-    assert.match(prompts[1],/Максимально сократи текст/);
-    assert.doesNotMatch(prompts[1],/НЕПРАВИЛЬНЫЙ ОТВЕТ/);
+    assert.match(prompts[1],/Shorten values without removing fields/);
+    assert.doesNotMatch(prompts[1],/broken_json_data/);
 });
 
 test('falls back to a short new plan after failed JSON repair', async()=>{

@@ -13,13 +13,13 @@ const user = mes => ({is_user:true,mes});
 
 test('base prompt does not demand a question, invitation or cliffhanger after each reply', () => {
   const p=buildInjection(story());
-  assert.match(p,/НЕ ОБЯЗАТЕЛЬНО задавай вопрос/);
-  assert.match(p,/не требование двигать историю в каждом ответе/);
-  assert.match(p,/Не заканчивай каждый ответ вопросом/);
-  assert.match(p,/пауза, реплика без вопроса, наблюдение/);
-  assert.match(p,/Вопросы, предложения и инициативы \{\{char\}\} РАЗРЕШЕНЫ/);
+  assert.match(p,/DO NOT require a question/);
+  assert.match(p,/not a demand for plot progress/);
+  assert.match(p,/Do not mechanically end each reply with a question/);
+  assert.match(p,/action, pause, observation, or statement/);
+  assert.match(p,/Questions, offers and proactive choices remain ALLOWED/);
   assert.doesNotMatch(p,/Заверши ответ в точке, где/);
-  assert.doesNotMatch(p,/АНТИПОВТОР/);
+  assert.doesNotMatch(p,/REPETITION AWARENESS/);
 });
 
 test('three questions in recent assistant replies trigger conditional anti-loop hint', () => {
@@ -27,20 +27,20 @@ test('three questions in recent assistant replies trigger conditional anti-loop 
   const result=detectConversationLoop(chat);
   assert.equal(result.repeatedQuestions,true);
   assert.equal(result.repeatedProposals,true);
-  assert.match(buildInjection(story(),'',chat),/АНТИПОВТОР/);
-  assert.match(buildInjection(story(),'',chat),/Если реальный ответ игрока требует вопроса или предложения, оно допустимо/);
+  assert.match(buildInjection(story(),'',chat),/REPETITION AWARENESS/);
+  assert.match(buildInjection(story(),'',chat),/A genuine question or proposal remains welcome/);
 });
 
 test('repeat guard also detects non-question offer loops', () => {
   const chat=[ai('Давай сходим к реке.'),ai('Можем заглянуть в библиотеку.'),ai('Предлагаю съездить к морю.')];
   assert.deepEqual(detectConversationLoop(chat),{repeatedQuestions:false,repeatedProposals:true});
-  assert.match(buildInjection(story(),'',chat),/приём нового предложения/);
+  assert.match(buildInjection(story(),'',chat),/new invitation or proposal/);
 });
 
 test('ordinary statements and legitimate single question do not trigger anti-loop',()=>{
   const chat=[ai('Тихо открывает дверь.'),user('Что это?'),ai('Объясняет ситуацию.'),ai('Как ты думаешь?'),ai('Ставит чашку на стол.')];
   assert.deepEqual(detectConversationLoop(chat),{repeatedQuestions:false,repeatedProposals:false});
-  assert.doesNotMatch(buildInjection(story(),'',chat),/АНТИПОВТОР/);
+  assert.doesNotMatch(buildInjection(story(),'',chat),/REPETITION AWARENESS/);
 });
 
 test('system messages, user questions and sparse dialogues are excluded',()=>{

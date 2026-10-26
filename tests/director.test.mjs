@@ -135,7 +135,7 @@ test('major deviations trigger replanning with cooldown', () => {
 test('replan prompt and parsing only update future acts', () => {
     const original = story({ stageIndex: 2, memory: { decisions: ['Поддержал беженцев'] } });
     const p = buildReplanPrompt(original, 'Мэр сбежал');
-    assert.match(p, /ровно 3 акт/);
+    assert.match(p, /exactly 3 acts/);
     assert.match(p, /Мэр сбежал/);
     const replan = parseReplan(JSON.stringify(validReplan(2)), 2);
     const modified = applyReplan(original, replan, 8, 'Мэр сбежал');
@@ -157,7 +157,7 @@ test('director prompt preserves branch memory and avoids pushing player actions'
     const prompt = buildInjection(active);
     assert.match(prompt, /Поддержал беженцев/);
     assert.match(prompt, /Мэр объявил награду/);
-    assert.match(prompt, /подтверждённые факты и решения игрока/i);
+    assert.match(prompt, /played facts OVERRIDE/i);
     assert.match(prompt, /Альтернативная сцена 1/);
 });
 

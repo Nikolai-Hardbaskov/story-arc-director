@@ -26,8 +26,8 @@ const ctx = {
     renderExtensionTemplateAsync:async()=>(await (await fetch('../settings.html')).text()),
     generateRaw:async({prompt})=>{
       window.mock.rawCalls.push(prompt);
-      if(prompt.includes('Ты предлагаешь игроку')) return JSON.stringify({genres:['romance','slice_of_life','sport'],reason:'Пара давно вместе, спортсменство лишь часть его жизни.'});
-      if(prompt.includes('Придумай ОРИГИНАЛЬНЫЙ')) {
+      if(prompt.includes('Suggest 1–8 genre IDs')) return JSON.stringify({genres:['romance','slice_of_life','sport'],reason:'Пара давно вместе, спортсменство лишь часть его жизни.'});
+      if(prompt.includes('Create an ORIGINAL')) {
         if (window.mock.invalidPlanOnce) { window.mock.invalidPlanOnce = false; return JSON.stringify(plot).slice(0, -100); }
         if (window.mock.agencyPlanOnce) {
           window.mock.agencyPlanOnce = false;
@@ -37,7 +37,7 @@ const ctx = {
         }
         return JSON.stringify(plot);
       }
-      if(prompt.includes('Ты — НЕ персонаж')) return JSON.stringify({
+      if(prompt.includes('You are an independent out-of-character story reviewer')) return JSON.stringify({
         sceneComplete:window.mock.reviewMode!=='incomplete',
         endingComplete:window.mock.reviewMode==='final', confidence:0.94,
         reason:'Ключ найден, сцена фактически разрешена',summary:'Игрок нашёл ключ и открыл дверь',
@@ -46,7 +46,7 @@ const ctx = {
         deviation:window.mock.reviewMode==='branch'?'major':'none',deviationReason:'Герой уничтожил архив вопреки исходному плану',
         relationship:{status:'Пара встречается 3 года',dynamics:'Поддерживают друг друга',changes:['Помог с тренировками'],unresolved:[]}
       });
-      if(prompt.includes('Перестрой оставшуюся часть')) {
+      if(prompt.includes('Replan only the remaining interactive roleplay story')) {
         const i = ctx.chatMetadata.story_arc_director.stageIndex;
         return JSON.stringify({centralConflict:'Найти другой способ спасти город',hiddenTruth:'Архив никогда не был полным',resolution:'Спасение памяти через людей',remainingActs:plot.acts.slice(i).map((a,k)=>({...a,scene:'Альтернативная сцена '+(k+1)}))});
       }

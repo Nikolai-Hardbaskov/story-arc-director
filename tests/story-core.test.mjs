@@ -48,17 +48,17 @@ test('planner asks for a closed ending and preserves player agency', () => {
     const p = generatePlannerPrompt({ idea: 'тайна старой библиотеки', genre: 'mystery', context: 'Алиса ищет брата' });
     assert.match(p, /тайна старой библиотеки/);
     assert.match(p, /Алиса ищет брата/);
-    assert.match(p, /развязк/i);
-    assert.match(p, /не приписывай пользователю/i);
+    assert.match(p, /resolution/i);
+    assert.match(p, /NEVER determine \{\{user\}\}/i);
 });
 
 test('injection is secret, act-specific, and can be disabled', () => {
     const first = buildInjection(story());
-    assert.match(first, /Текущий акт 1\/5/);
-    assert.match(first, /Не управляй действиями/);
+    assert.match(first, /Current act 1\/5/);
+    assert.match(first, /NEVER author \{\{user\}\}/);
     assert.doesNotMatch(first, /Ожидаемая развязка/);
     const last = buildInjection(story({ stageIndex: 4 }));
-    assert.match(last, /ФИНАЛЬНЫЙ АКТ/);
+    assert.match(last, /FINAL ACT/);
     assert.equal(buildInjection(story({ paused: true })), '');
     assert.equal(buildInjection(story({ completed: true })), '');
 });

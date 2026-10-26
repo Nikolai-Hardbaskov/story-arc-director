@@ -30,19 +30,19 @@ test('play prompt withholds spoilers, full arc roadmap, upcoming scenes and curr
 
 test('explicitly insists on one dramatic beat per turn and protects player agency',()=>{
     const p = buildInjection(story(0));
-    assert.match(p,/ОДИН ОТВЕТ = НЕ БОЛЬШЕ ОДНОГО НЕБОЛЬШОГО ИГРОВОГО ШАГА/);
-    assert.match(p,/НЕ ОБЯЗАТЕЛЬНО задавай вопрос/);
-    assert.match(p,/Не заканчивай каждый ответ вопросом/);
-    assert.match(p,/Длина и выразительность описаний свободны/);
-    assert.match(p,/Не управляй действиями/);
-    assert.match(p,/НЕ переходи к следующему акту самостоятельно/);
-    assert.match(buildInjection(story(4)),/Не торопи итог в один ответ/);
+    assert.match(p,/At MOST one small playable step per response/);
+    assert.match(p,/DO NOT require a question/);
+    assert.match(p,/Do not mechanically end each reply with a question/);
+    assert.match(p,/Detailed and expressive prose is allowed/);
+    assert.match(p,/NEVER author \{\{user\}\}/);
+    assert.match(p,/Do NOT change the act on your own/);
+    assert.match(buildInjection(story(4)),/Do not rush an ending in one answer/);
 });
 
 test('planner and reviewer retain complete long-term plan while live prompt does not',()=>{
     const p=buildReviewPrompt(story(0),[{is_user:true,mes:'Пока ничего не решил'}]);
-    assert.match(p,/Не объявляй акт завершённым только потому/);
+    assert.match(p,/Never mark an act complete merely because/);
     const planner=generatePlannerPrompt({genres:['romance','slice_of_life']});
-    assert.match(planner,/Пять актов/);
-    assert.match(buildReplanPrompt(story(0),'Игрок изменил решение'),/Перестрой оставшуюся часть/);
+    assert.match(planner,/Exactly five acts/);
+    assert.match(buildReplanPrompt(story(0),'Игрок изменил решение'),/Replan only the remaining/);
 });

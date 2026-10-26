@@ -69,15 +69,15 @@ with sync_playwright() as p:
     page.wait_for_function("() => !document.querySelector('#sad-generate').disabled")
     assert 'Маяк памяти' in page.inner_text('#sad-title')
     assert 'после исправления формата' in page.inner_text('#sad-status')
-    assert sum('Придумай ОРИГИНАЛЬНЫЙ' in p for p in page.evaluate('mock.rawCalls')) == 3
-    assert 'ПРЕДЫДУЩИЙ ВАРИАНТ НЕ ПОДХОДИТ' in page.evaluate('mock.rawCalls.at(-1)')
-    assert 'игрока' in page.evaluate('mock.rawCalls.at(-1)').lower()
+    assert sum('Create an ORIGINAL' in p for p in page.evaluate('mock.rawCalls')) == 3
+    assert 'THE PREVIOUS PLOT FAILED CANON/GENRE/AGENCY VALIDATION' in page.evaluate('mock.rawCalls.at(-1)')
+    assert 'validation_diagnostics' in page.evaluate('mock.rawCalls.at(-1)')
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.genres') == ['romance','slice_of_life']
-    planner = page.evaluate('mock.rawCalls.find(p => p.includes("Придумай ОРИГИНАЛЬНЫЙ"))')
+    planner = page.evaluate('mock.rawCalls.find(p => p.includes("Create an ORIGINAL"))')
     assert 'парень игрока' in planner and 'спортсмен' in planner
-    assert 'романтика + повседневность' in planner.lower()
+    assert 'Романтика + Повседневность' in planner
     
-    assert 'Текущий акт 1/5' in page.evaluate('mock.prompt')
+    assert 'Current act 1/5' in page.evaluate('mock.prompt')
     assert 'Игрок занимается живописью' in planner
     assert 'описание прочитано' in page.inner_text('#sad-active-persona')
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.personaBinding').startswith('v1:')
@@ -90,16 +90,16 @@ with sync_playwright() as p:
         {is_user:true,mes:'Поправляю воротник.'},
         {is_user:false,mes:'Давай съездим в парк?'}
     ); storyArcDirectorBeforeGenerate([], 0, null, 'normal'); }""")
-    assert 'АНТИПОВТОР' in page.evaluate('mock.prompt')
+    assert 'REPETITION AWARENESS' in page.evaluate('mock.prompt')
     page.evaluate("() => {mock.ctx.chat.length=0;storyArcDirectorBeforeGenerate([],0,null,'normal')}")
-    assert 'АНТИПОВТОР' not in page.evaluate('mock.prompt')
+    assert 'REPETITION AWARENESS' not in page.evaluate('mock.prompt')
 
     assert 'чужая персона' not in planner
 
 
     page.evaluate("() => mock.addResponse('Найдена записка с ключом.')")
     page.wait_for_function("() => mock.ctx.chatMetadata.story_arc_director.stageIndex === 1")
-    assert 'Текущий акт 2/5' in page.evaluate('mock.prompt')
+    assert 'Current act 2/5' in page.evaluate('mock.prompt')
     assert 'Игрок нашёл ключ' in page.text_content('#sad-memory')
     assert 'Пара встречается 3 года' in page.text_content('#sad-rel-status')
 
@@ -117,13 +117,13 @@ with sync_playwright() as p:
     page.evaluate("() => mock.addResponse('Следующая сцена без прежней персоны')")
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.lastReviewCount') == stored
     page.evaluate('() => {mock.ctx.name1="Игрок"; mock.ctx.powerUserSettings.persona_description="Игрок занимается живописью, не любит высоту, дружелюбен."; mock.emit("PERSONA_CHANGED")}')
-    assert 'Текущий акт 2/5' in page.evaluate('mock.prompt')
+    assert 'Current act 2/5' in page.evaluate('mock.prompt')
     assert page.locator('#sad-persona-warning').is_hidden()
 
     page.evaluate("() => {mock.reviewMode='branch'; mock.addResponse('Я сжигаю архив.')}")
     page.wait_for_function("() => (mock.ctx.chatMetadata.story_arc_director.revisions||[]).length === 1")
     assert 'Альтернативная сцена' in page.inner_text('#sad-scene')
-    assert 'Текущий акт 3/5' in page.evaluate('mock.prompt')
+    assert 'Current act 3/5' in page.evaluate('mock.prompt')
 
     page.click('#sad-pause')
     page.wait_for_function("() => mock.ctx.chatMetadata.story_arc_director.paused === true")

@@ -42,7 +42,7 @@ test('normalizing multiple genres supports auto and v0.2 single-select migration
     assert.deepEqual(storyGenres({ genre:'mystery' }), ['mystery']);
     assert.deepEqual(storyGenres({ genres:[], genre:'romance' }), []);
     assert.deepEqual(normalizeGenres(Object.keys(GENRES)).length, GENRE_LIMIT);
-    assert.match(genreDescription([]), /Профессия.*контекст/);
+    assert.match(genreDescription([]), /Occupation and biography are context/);
 });
 
 test('genre suggestions are strict IDs and keep names grounded', () => {
@@ -58,14 +58,14 @@ test('genre suggestions are strict IDs and keep names grounded', () => {
 
 test('planner prioritizes couple status, character and agency over genre or profession', () => {
     const prompt = generatePlannerPrompt({genres:['romance','horror'],context:'Они пришли домой с соревнований.',canon:coupleCanon});
-    assert.match(prompt,/романтика \+ Ужасы/i);
-    assert.match(prompt,/профессия.*НЕ диктует жанр/i);
-    assert.match(prompt,/НЕ сбрасывай эти отношения/i);
+    assert.match(prompt,/Романтика \+ Ужасы/i);
+    assert.match(prompt,/Occupation.*background/i);
+    assert.match(prompt,/never reset them to strangers/i);
     assert.match(prompt,/{{char}} уже парень {{user}}/);
-    assert.match(prompt,/не делай измену/i);
-    assert.match(prompt,/совершеннолетних/);
+    assert.match(prompt,/Do not require infidelity/i);
+    assert.match(prompt,/only adults/);
     const auto = generatePlannerPrompt({genres:[],canon:coupleCanon});
-    assert.match(auto,/Автоматически подбери/);
+    assert.match(auto,/Automatically choose/);
     assert.doesNotMatch(prompt,/выберите атмосферу/i);
 });
 
@@ -87,11 +87,11 @@ test('memory stores actual relationship observations without losing them to lega
 test('review and branch prompts preserve established relationships, no forced athlete genre', () => {
     const s = story({ memory: {summary:'Пара уже вместе',relationship:{status:'Они пара',dynamics:'Поддерживают друг друга',changes:[],unresolved:[]}} });
     const review = buildReviewPrompt(s,[{is_user:false,mes:'{{char}} обнял {{user}}'}],coupleCanon);
-    assert.match(review,/исходный статус отношений/i);
+    assert.match(review,/starting relationship status/i);
     assert.match(review,/relationship\.status/);
     assert.match(review,/застенчивый/);
     const replan = buildReplanPrompt(s,'Изменился план отпуска',coupleCanon);
-    assert.match(replan,/измены и расставания не обязательны/i);
-    assert.match(replan,/спортсмен не обязан/i);
-    assert.match(replan,/канон/i);
+    assert.match(replan,/Infidelity and breakup are not required/i);
+    assert.match(replan,/Occupation does not dictate genre/i);
+    assert.match(replan,/canon/i);
 });

@@ -54,11 +54,11 @@ test('planner asks for a closed ending and preserves player agency', () => {
 
 test('injection is secret, act-specific, and can be disabled', () => {
     const first = buildInjection(story());
-    assert.match(first, /АКТ 1\/5/);
+    assert.match(first, /Текущий акт 1\/5/);
     assert.match(first, /Не управляй действиями/);
-    assert.match(first, /Ожидаемая развязка/);
+    assert.doesNotMatch(first, /Ожидаемая развязка/);
     const last = buildInjection(story({ stageIndex: 4 }));
-    assert.match(last, /ПРИОРИТЕТ РАЗВЯЗКИ/);
+    assert.match(last, /ФИНАЛЬНЫЙ АКТ/);
     assert.equal(buildInjection(story({ paused: true })), '');
     assert.equal(buildInjection(story({ completed: true })), '');
 });

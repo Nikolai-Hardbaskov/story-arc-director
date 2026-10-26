@@ -52,13 +52,13 @@ test('multi-genre planner respects main focus, player agency and no forced genre
   assert.match(prompt,/Не приписывай пользователю конкретных поступков/i);
 });
 
-test('manifest, visible heading, readme match in v0.3.8 and no atmosphere controls', () => {
+test('manifest, visible heading, readme match in v0.3.9 and no atmosphere controls', () => {
   const manifest = JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
   const html = readFileSync(resolve(root,'settings.html'),'utf8');
   const readme = readFileSync(resolve(root,'README.md'),'utf8');
-  assert.equal(manifest.version,'0.3.8');
-  assert.match(html,/Сюжетный режиссёр v0\.3\.8/);
-  assert.ok(readme.startsWith('# Story Arc Director v0.3.8'));
+  assert.equal(manifest.version,'0.3.9');
+  assert.match(html,/Сюжетный режиссёр v0\.3\.9/);
+  assert.ok(readme.startsWith('# Story Arc Director v0.3.9'));
   assert.match(html,/до восьми жанров/i);
   assert.match(html,/sad-genre-search/);
   assert.doesNotMatch(html,/sad-atmosphere|Выбор атмосферы/);

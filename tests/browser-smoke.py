@@ -77,7 +77,7 @@ with sync_playwright() as p:
     assert 'парень игрока' in planner and 'спортсмен' in planner
     assert 'романтика + повседневность' in planner.lower()
     
-    assert 'АКТ 1/5' in page.evaluate('mock.prompt')
+    assert 'Текущий акт 1/5' in page.evaluate('mock.prompt')
     assert 'Игрок занимается живописью' in planner
     assert 'описание прочитано' in page.inner_text('#sad-active-persona')
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.personaBinding').startswith('v1:')
@@ -87,7 +87,7 @@ with sync_playwright() as p:
 
     page.evaluate("() => mock.addResponse('Найдена записка с ключом.')")
     page.wait_for_function("() => mock.ctx.chatMetadata.story_arc_director.stageIndex === 1")
-    assert 'АКТ 2/5' in page.evaluate('mock.prompt')
+    assert 'Текущий акт 2/5' in page.evaluate('mock.prompt')
     assert 'Игрок нашёл ключ' in page.text_content('#sad-memory')
     assert 'Пара встречается 3 года' in page.text_content('#sad-rel-status')
 
@@ -105,13 +105,13 @@ with sync_playwright() as p:
     page.evaluate("() => mock.addResponse('Следующая сцена без прежней персоны')")
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.lastReviewCount') == stored
     page.evaluate('() => {mock.ctx.name1="Игрок"; mock.ctx.powerUserSettings.persona_description="Игрок занимается живописью, не любит высоту, дружелюбен."; mock.emit("PERSONA_CHANGED")}')
-    assert 'АКТ 2/5' in page.evaluate('mock.prompt')
+    assert 'Текущий акт 2/5' in page.evaluate('mock.prompt')
     assert page.locator('#sad-persona-warning').is_hidden()
 
     page.evaluate("() => {mock.reviewMode='branch'; mock.addResponse('Я сжигаю архив.')}")
     page.wait_for_function("() => (mock.ctx.chatMetadata.story_arc_director.revisions||[]).length === 1")
     assert 'Альтернативная сцена' in page.inner_text('#sad-scene')
-    assert 'АКТ 3/5' in page.evaluate('mock.prompt')
+    assert 'Текущий акт 3/5' in page.evaluate('mock.prompt')
 
     page.click('#sad-pause')
     page.wait_for_function("() => mock.ctx.chatMetadata.story_arc_director.paused === true")

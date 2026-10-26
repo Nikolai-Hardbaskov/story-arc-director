@@ -77,5 +77,5 @@ test('manifest, interface and documentation versions must match for every releas
     const readme = readFileSync(resolve(base,'README.md'),'utf8');
     assert.match(html,new RegExp(`Сюжетный режиссёр v${manifest.version.replaceAll('.','\\.')}`));
     assert.ok(readme.startsWith(`# Story Arc Director v${manifest.version}`));
-    assert.equal(manifest.version,'0.3.9');
+    assert.equal(manifest.version,'0.3.10');
 });

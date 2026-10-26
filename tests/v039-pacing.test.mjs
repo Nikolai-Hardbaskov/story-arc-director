@@ -30,8 +30,9 @@ test('play prompt withholds spoilers, full arc roadmap, upcoming scenes and curr
 
 test('explicitly insists on one dramatic beat per turn and protects player agency',()=>{
     const p = buildInjection(story(0));
-    assert.match(p,/ОДИН ОТВЕТ = ОДИН НЕБОЛЬШОЙ ИГРОВОЙ ШАГ/);
-    assert.match(p,/Заверши ответ в точке, где \{\{user\}\} может естественно отреагировать/);
+    assert.match(p,/ОДИН ОТВЕТ = НЕ БОЛЬШЕ ОДНОГО НЕБОЛЬШОГО ИГРОВОГО ШАГА/);
+    assert.match(p,/НЕ ОБЯЗАТЕЛЬНО задавай вопрос/);
+    assert.match(p,/Не заканчивай каждый ответ вопросом/);
     assert.match(p,/Длина и выразительность описаний свободны/);
     assert.match(p,/Не управляй действиями/);
     assert.match(p,/НЕ переходи к следующему акту самостоятельно/);

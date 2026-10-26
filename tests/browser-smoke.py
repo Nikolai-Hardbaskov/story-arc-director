@@ -82,6 +82,18 @@ with sync_playwright() as p:
     assert 'описание прочитано' in page.inner_text('#sad-active-persona')
     assert page.evaluate('mock.ctx.chatMetadata.story_arc_director.personaBinding').startswith('v1:')
     assert 'Игрок занимается живописью' in page.evaluate('mock.prompt')
+    # After three consecutive proposal/question hooks, interceptor adds a gentle, temporary loop reminder.
+    page.evaluate("""() => { mock.ctx.chat.push(
+        {is_user:false,mes:'Можем погулять?'},
+        {is_user:true,mes:'Смотрю в окно.'},
+        {is_user:false,mes:'Хочешь кофе?'},
+        {is_user:true,mes:'Поправляю воротник.'},
+        {is_user:false,mes:'Давай съездим в парк?'}
+    ); storyArcDirectorBeforeGenerate([], 0, null, 'normal'); }""")
+    assert 'АНТИПОВТОР' in page.evaluate('mock.prompt')
+    page.evaluate("() => {mock.ctx.chat.length=0;storyArcDirectorBeforeGenerate([],0,null,'normal')}")
+    assert 'АНТИПОВТОР' not in page.evaluate('mock.prompt')
+
     assert 'чужая персона' not in planner
 
 

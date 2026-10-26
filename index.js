@@ -76,7 +76,7 @@ function applyPrompt() {
     }
     // IN_CHAT=1, depth=0, system role=0. Never append a message to chat.
     const story = getStory();
-    ctx.setExtensionPrompt(INJECTION_KEY, isPersonaCurrent(story, ctx) ? buildInjection(story, getCanonForStory(story, ctx)) : '', 1, 0, false, 0);
+    ctx.setExtensionPrompt(INJECTION_KEY, isPersonaCurrent(story, ctx) ? buildInjection(story, getCanonForStory(story, ctx), ctx.chat) : '', 1, 0, false, 0);
 }
 
 globalThis.storyArcDirectorBeforeGenerate = function (_chat, _contextSize, _abort, type) {

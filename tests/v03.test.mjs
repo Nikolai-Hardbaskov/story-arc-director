@@ -26,14 +26,14 @@ const analysis = {
     relationship:{status:'Они уже пара',dynamics:'Заботятся друг о друге',changes:['Поддержал после матча'],unresolved:['Не обсудили отпуск']},
 };
 
-test('genre groups are unique, contain requested examples, and have a four-genre limit', () => {
+test('genre groups are unique, contain requested examples, and have an eight-genre limit', () => {
     const all = GENRE_GROUPS.flatMap(g=>g.items.map(([id])=>id));
     assert.equal(all.length, new Set(all).size);
     assert.equal(all.length, Object.keys(GENRES).length);
     for (const id of ['sport','erotica','dark_romance','romance','slice_of_life','horror','drama','fantasy','superheroes']) {
         assert.ok(all.includes(id), id);
     }
-    assert.equal(GENRE_LIMIT, 4);
+    assert.equal(GENRE_LIMIT, 8);
 });
 
 test('normalizing multiple genres supports auto and v0.2 single-select migration', () => {
@@ -51,9 +51,9 @@ test('genre suggestions are strict IDs and keep names grounded', () => {
     assert.match(prompt,/sport: Спорт/);
     const result = parseGenreSuggestion('```json\n{"genres":["romance","slice_of_life"],"reason":"Герои уже вместе"}\n```');
     assert.deepEqual(result.genres,['romance','slice_of_life']);
-    assert.throws(()=>parseGenreSuggestion(JSON.stringify({ genres: ['auto'], reason: 'wrong' })),/1–3/);
-    assert.throws(()=>parseGenreSuggestion(JSON.stringify({ genres: ['sport','sport'], reason: 'wrong' })),/1–3/);
-    assert.throws(()=>parseGenreSuggestion(JSON.stringify({ genres: [], reason: 'empty' })),/1–3/);
+    assert.throws(()=>parseGenreSuggestion(JSON.stringify({ genres: ['auto'], reason: 'wrong' })),/1–8/);
+    assert.throws(()=>parseGenreSuggestion(JSON.stringify({ genres: ['sport','sport'], reason: 'wrong' })),/1–8/);
+    assert.throws(()=>parseGenreSuggestion(JSON.stringify({ genres: [], reason: 'empty' })),/1–8/);
 });
 
 test('planner prioritizes couple status, character and agency over genre or profession', () => {

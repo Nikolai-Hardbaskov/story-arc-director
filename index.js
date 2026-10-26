@@ -7,6 +7,7 @@ import {
     shouldReplan, buildReplanPrompt, parseReplan, applyReplan,
 } from './story-core.mjs';
 import { requestStoryPlot } from './plot-request.mjs';
+import { getActivePersona, personaMatches } from './persona-context.mjs';
 
 const KEY = 'story_arc_director';
 const INJECTION_KEY = 'story_arc_director_current_beat';
@@ -15,6 +16,7 @@ const defaults = Object.freeze({ genres: [], pace: 4, mode: 'smart', reviewEvery
 let busy = false;
 let initialized = false;
 let pendingReview = false;
+let genreOpenBeforeSearch = null;
 
 const context = () => globalThis.SillyTavern.getContext();
 
@@ -73,7 +75,8 @@ function applyPrompt() {
         return;
     }
     // IN_CHAT=1, depth=0, system role=0. Never append a message to chat.
-    ctx.setExtensionPrompt(INJECTION_KEY, buildInjection(getStory(), getCharacterCanon(ctx)), 1, 0, false, 0);
+    const story = getStory();
+    ctx.setExtensionPrompt(INJECTION_KEY, isPersonaCurrent(story, ctx) ? buildInjection(story, getCanonForStory(story, ctx)) : '', 1, 0, false, 0);
 }
 
 globalThis.storyArcDirectorBeforeGenerate = function (_chat, _contextSize, _abort, type) {
@@ -102,15 +105,44 @@ function getCharacterCanon(ctx) {
     return getCharacterFacts(ctx).canon;
 }
 
+function getRelationshipFacts(ctx) {
+    const characterRelationship = getCharacterFacts(ctx).relationship;
+    if (characterRelationship) return characterRelationship;
+    // A relationship may be explicit in the active {{user}} persona rather than in {{char}}.
+    const selectedDescription = getActivePersona(ctx).description;
+    return selectedDescription
+        ? extractCharacterFacts({ description: selectedDescription }, { charName: ctx.name2, userName: ctx.name1 }).relationship
+        : null;
+}
+
+function getCombinedCanon(ctx) {
+    const charCanon = getCharacterCanon(ctx);
+    const persona = getActivePersona(ctx);
+    return `${charCanon.slice(0, 2850)}
+
+${persona.canon.slice(0, 2800)}`;
+}
+
+function getCanonForStory(story, ctx) {
+    // Historical plans remain functional, but were created without persona binding.
+    return story?.personaBinding ? getCombinedCanon(ctx) : getCharacterCanon(ctx);
+}
+
+function isPersonaCurrent(story, ctx = context()) {
+    return personaMatches(story, getActivePersona(ctx));
+}
+
+
 function buildGenreSelector() {
     const container = document.getElementById('sad-genre-list');
     container.replaceChildren();
     for (const [index, group] of GENRE_GROUPS.entries()) {
         const details = document.createElement('details');
         details.className = 'sad-genre-group';
-        details.open = index < 2;
+        details.open = index === 0;
+        details.dataset.groupIndex = String(index);
         const summary = document.createElement('summary');
-        summary.textContent = group.title;
+        summary.textContent = `${group.title} · ${group.items.length}`;
         const chips = document.createElement('div');
         chips.className = 'sad-genre-chips';
         for (const [key, label] of group.items) {
@@ -129,6 +161,33 @@ function buildGenreSelector() {
         details.append(summary, chips);
         container.append(details);
     }
+}
+
+/** Local search: filter category/chips without rebuilding checkboxes or losing selection. */
+function filterGenreList() {
+    const root = document.getElementById('sad-root');
+    if (!root) return;
+    const value = root.querySelector('#sad-genre-search').value.trim().toLocaleLowerCase('ru');
+    const sections = [...root.querySelectorAll('.sad-genre-group')];
+    if (value && genreOpenBeforeSearch === null) {
+        genreOpenBeforeSearch = sections.filter(group => group.open).map(group => group.dataset.groupIndex);
+    }
+    let visibleGroups = 0;
+    sections.forEach(group => {
+        const groupMatch = group.querySelector('summary').textContent.toLocaleLowerCase('ru').includes(value);
+        let matches = 0;
+        group.querySelectorAll('.sad-genre-chip').forEach(chip => {
+            const match = !value || groupMatch || chip.textContent.toLocaleLowerCase('ru').includes(value);
+            chip.hidden = !match;
+            if (match) matches++;
+        });
+        group.hidden = matches === 0;
+        if (matches) visibleGroups++;
+        if (value) group.open = matches > 0;
+        else if (genreOpenBeforeSearch !== null) group.open = genreOpenBeforeSearch.includes(group.dataset.groupIndex);
+    });
+    if (!value) genreOpenBeforeSearch = null;
+    root.querySelector('#sad-genre-empty').hidden = visibleGroups > 0;
 }
 
 function selectedGenres() {
@@ -151,7 +210,8 @@ function updateGenreDisplay() {
     if (!root) return;
     const automatic = root.querySelector('#sad-genre-auto').checked;
     const chips = [...root.querySelectorAll('.sad-genre-option')];
-    chips.forEach(input => { input.disabled = automatic || busy; });
+    const checkedCount = chips.filter(input => input.checked).length;
+    chips.forEach(input => { input.disabled = automatic || busy || (!input.checked && checkedCount >= GENRE_LIMIT); });
     root.querySelector('#sad-genre-list').classList.toggle('sad-dim', automatic);
     const chosen = selectedGenres();
     root.querySelector('#sad-genre-count').textContent = automatic ? 'Автоподбор' : `${chosen.length}/${GENRE_LIMIT} · ${chosen.map(id => GENRES[id]).join(' + ') || 'выберите жанры'}`;
@@ -187,10 +247,15 @@ function render() {
     const story = getStory();
     updateGenreDisplay();
     root.querySelector('#sad-story').hidden = !story;
+    const persona = getActivePersona(context());
+    const personaWarning = root.querySelector('#sad-persona-warning');
+    personaWarning.hidden = !story || isPersonaCurrent(story);
+    if (!personaWarning.hidden) personaWarning.textContent = `⚠ Выбрана другая персона (${persona.name || 'без имени'}). План сохранён, но режиссёр приостановлен, чтобы не смешивать биографии. Пересоздайте сюжет для этой персоны или верните прежнюю.`;
+    root.querySelector('#sad-active-persona').textContent = `Активная персона: ${persona.name || 'без имени'} · ${persona.description ? 'описание прочитано' : 'описание отсутствует'}`;
     root.querySelector('#sad-generate').textContent = busy ? '⏳ Модель занята…' : story ? '✨ Пересоздать сюжет' : '✨ Создать сюжет для этого чата';
     root.querySelector('#sad-generate').disabled = busy || !hasSelectedChat(context());
     for (const id of ['sad-prev', 'sad-next', 'sad-pause', 'sad-finish', 'sad-remove', 'sad-review-now']) {
-        root.querySelector(`#${id}`).disabled = busy || !story;
+        root.querySelector(`#${id}`).disabled = busy || !story || (id !== 'sad-remove' && !isPersonaCurrent(story));
     }
     if (!story) return;
 
@@ -201,12 +266,21 @@ function render() {
         ? '✓ История завершена — подсказки отключены'
         : `${story.paused ? '⏸ Пауза · ' : ''}Акт ${stage + 1}/5 · ${ACT_NAMES[stage]}`;
     root.querySelector('#sad-scene').textContent = `${act.scene}\n\nЦель: ${act.goal}`;
-    root.querySelector('#sad-prev').disabled = busy || stage === 0 || story.completed;
-    root.querySelector('#sad-next').disabled = busy || stage === 4 || story.completed;
-    root.querySelector('#sad-pause').disabled = busy || story.completed;
+    const progress = story.actProgress?.stageIndex === stage ? story.actProgress : null;
+    const completedBeats = progress?.confirmed || [];
+    const remainingBeats = progress?.pending || [];
+    root.querySelector('#sad-progress-title').textContent = `Акт ${stage + 1}/5 · ${progress ? 'отслежен' : 'ожидает анализа'}`;
+    root.querySelector('#sad-progress-done').textContent = completedBeats.length ? `• ${completedBeats.join('\n• ')}` : 'Пока нет подтверждённых событий для этого акта.';
+    root.querySelector('#sad-progress-pending').textContent = remainingBeats.length ? `• ${remainingBeats.join('\n• ')}` : 'Режиссёр уточнит, что осталось сделать, при следующем анализе.';
+    root.querySelector('#sad-progress-next').textContent = progress?.nextOpportunity || 'Продолжайте игру естественно — дальнейшие возможности появятся после анализа.';
+    root.querySelector('#sad-transition-reason').textContent = story.lastTransition?.reason
+        ? `Последний переход: ${story.lastTransition.reason}` : 'Автоматическое продвижение произойдёт, когда цель текущего акта действительно достигнута.';
+    root.querySelector('#sad-prev').disabled = busy || stage === 0 || story.completed || !isPersonaCurrent(story);
+    root.querySelector('#sad-next').disabled = busy || stage === 4 || story.completed || !isPersonaCurrent(story);
+    root.querySelector('#sad-pause').disabled = busy || story.completed || !isPersonaCurrent(story);
     root.querySelector('#sad-pause').textContent = story.paused ? '▶ Продолжить' : '⏸ Пауза';
     root.querySelector('#sad-finish').textContent = story.completed ? '↩ Возобновить финал' : stage < 4 ? '⇥ Перейти к финалу' : '✓ Отметить завершённой';
-    root.querySelector('#sad-review-now').disabled = busy || story.paused || story.completed;
+    root.querySelector('#sad-review-now').disabled = busy || story.paused || story.completed || !isPersonaCurrent(story);
 
     const last = story.lastReview;
     root.querySelector('#sad-review-output').hidden = !last;
@@ -238,14 +312,14 @@ function render() {
 
 function getStoryContext(ctx) {
     const facts = getCharacterFacts(ctx);
-    const blocks = [facts.canon.slice(0, 4400)];
+    const blocks = [facts.canon.slice(0, 3800), getActivePersona(ctx).canon.slice(0, 2800)];
     const recent = (Array.isArray(ctx.chat) ? ctx.chat : [])
         .filter(m => m && typeof m.mes === 'string' && !m.is_system)
         .slice(-7)
         .map(m => `${String(m.name || (m.is_user ? 'Игрок' : 'Персонаж')).slice(0, 60)}: ${m.mes.slice(0, 250)}`);
     if (recent.length) blocks.push(`Последние события:
 ${recent.join('\n')}`);
-    return blocks.filter(Boolean).join('\n\n').slice(0, 5900);
+    return blocks.filter(Boolean).join('\n\n').slice(0, 7600);
 }
 
 async function suggestGenres() {
@@ -257,6 +331,7 @@ async function suggestGenres() {
     }
     const metadata = ctx.chatMetadata;
     const fingerprint = fingerprintChat(ctx.chat);
+    const personaBinding = getActivePersona(ctx).binding;
     const idea = document.getElementById('sad-idea').value.trim();
     busy = true;
     render();
@@ -267,7 +342,7 @@ async function suggestGenres() {
             prompt: buildGenreSuggestionPrompt({ context: getStoryContext(ctx), idea }),
         });
         const suggestion = parseGenreSuggestion(result);
-        if (context().chatMetadata !== metadata || fingerprintChat(context().chat) !== fingerprint) {
+        if (context().chatMetadata !== metadata || fingerprintChat(context().chat) !== fingerprint || getActivePersona(context()).binding !== personaBinding) {
             showStatus('Чат изменился — предложение жанров устарело и не применено.');
             return;
         }
@@ -287,6 +362,9 @@ async function suggestGenres() {
 function onGenreChanged(event) {
     if (busy) return;
     const root = document.getElementById('sad-root');
+    if (event?.target?.id === 'sad-genre-auto' && event.target.checked) {
+        root.querySelectorAll('.sad-genre-option:checked').forEach(input => { input.checked = false; });
+    }
     if (event?.target?.matches('.sad-genre-option')) {
         const input = event.target;
         const current = [...root.querySelectorAll('.sad-genre-option:checked')];
@@ -323,7 +401,8 @@ async function generateStory() {
     const ownedMetadata = ctx.chatMetadata;
     const replyCount = countAssistantReplies(ctx.chat);
     const facts = getCharacterFacts(ctx);
-    const prompt = generatePlannerPrompt({ idea, genres, context: getStoryContext(ctx), canon: facts.canon });
+    const persona = getActivePersona(ctx);
+    const prompt = generatePlannerPrompt({ idea, genres, context: getStoryContext(ctx), canon: getCombinedCanon(ctx) });
     if (typeof ctx.generateRaw !== 'function') {
         showStatus('В этой версии SillyTavern недоступен generateRaw().', true);
         return;
@@ -339,7 +418,7 @@ async function generateStory() {
                 ? 'Ответ модели содержит ошибку формата. Пытаюсь восстановить JSON…'
                 : 'Ответ модели неполный. Повторяю запрос с более коротким планом…'),
         });
-        let issues = validatePlotFit(plot, { relationship: facts.relationship, genres, idea });
+        let issues = validatePlotFit(plot, { relationship: getRelationshipFacts(ctx), genres, idea, userName: ctx.name1 || '', charName: ctx.name2 || '', canon: getCombinedCanon(ctx) });
         // Fail closed: do not save a new plan that obviously contradicts the card or genre.
         if (issues.length) {
             showStatus('Проверка нашла противоречие карточке или жанрам. Прошу модель исправить план…');
@@ -349,11 +428,11 @@ async function generateStory() {
                 onRetry: () => showStatus('Исправленный план снова пришёл в неверном формате. Повторяю запрос…'),
                 prompt: `${prompt}\n\nПРЕДЫДУЩИЙ ВАРИАНТ НЕ ПОДХОДИТ:\n${issues.join('\n')}\nНовый план обязан исправить ошибки. Не копируй их из старого варианта.`,
             }));
-            issues = validatePlotFit(plot, { relationship: facts.relationship, genres, idea });
+            issues = validatePlotFit(plot, { relationship: getRelationshipFacts(ctx), genres, idea, userName: ctx.name1 || '', charName: ctx.name2 || '', canon: getCombinedCanon(ctx) });
             if (issues.length) throw new Error(`План не прошёл проверку: ${issues.join(' ')}`);
         }
-        if (context().chatMetadata !== ownedMetadata) {
-            showStatus('За время генерации вы сменили чат; план не был записан в другой диалог.', true);
+        if (context().chatMetadata !== ownedMetadata || getActivePersona(context()).binding !== persona.binding) {
+            showStatus('Во время генерации изменился чат или активная персона. План не сохранён, чтобы избежать смешивания историй.', true);
             return;
         }
         const story = {
@@ -361,8 +440,10 @@ async function generateStory() {
             stageIndex: 0, atAssistantCount: replyCount, lastReviewCount: replyCount,
             lastReviewFingerprint: fingerprintChat(ctx.chat),
             paused: false, completed: false,
-            canonRelationshipStatus: facts.relationship?.status || '',
-            memory: { summary: '', decisions: [], consequences: [], openThreads: [], relationship: { status: facts.relationship?.status || '', dynamics: '', changes: [], unresolved: [] } },
+            personaBinding: persona.binding,
+            canonRelationshipStatus: getRelationshipFacts(ctx)?.status || '',
+            actProgress: { stageIndex: 0, confirmed: [], pending: [], nextOpportunity: '' },
+            memory: { summary: '', decisions: [], consequences: [], openThreads: [], relationship: { status: getRelationshipFacts(ctx)?.status || '', dynamics: '', changes: [], unresolved: [] } },
             reviewLog: [], revisions: [],
             id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
             createdAt: new Date().toISOString(),
@@ -381,17 +462,19 @@ async function generateStory() {
 
 async function changeAct(offset) {
     const story = getStory();
-    if (!story || story.completed || busy) return;
+    if (!story || story.completed || busy || !isPersonaCurrent(story)) return;
     const target = Math.min(4, Math.max(0, story.stageIndex + offset));
     if (target === story.stageIndex) return;
     const replies = countAssistantReplies(context().chat);
-    await saveStory({ ...story, stageIndex: target, atAssistantCount: replies, lastReviewCount: replies, lastReviewFingerprint: fingerprintChat(context().chat) });
+    await saveStory({ ...story, stageIndex: target, actProgress: { stageIndex: target, confirmed: [], pending: [], nextOpportunity: '' },
+        lastTransition: { from: story.stageIndex + 1, to: target + 1, reason: 'Ручное переключение акта.' },
+        atAssistantCount: replies, lastReviewCount: replies, lastReviewFingerprint: fingerprintChat(context().chat) });
     showStatus(`Выбран акт ${target + 1}: ${ACT_NAMES[target]}.`);
 }
 
 async function onPause() {
     const story = getStory();
-    if (!story || story.completed || busy) return;
+    if (!story || story.completed || busy || !isPersonaCurrent(story)) return;
     const paused = !story.paused;
     await saveStory({ ...story, paused });
     showStatus(paused ? 'Подсказки и автоматический анализ приостановлены.' : 'Режиссёр снова активен.');
@@ -399,14 +482,14 @@ async function onPause() {
 
 async function onFinish() {
     const story = getStory();
-    if (!story || busy) return;
+    if (!story || busy || !isPersonaCurrent(story)) return;
     const replies = countAssistantReplies(context().chat);
     const common = { atAssistantCount: replies, lastReviewCount: replies, lastReviewFingerprint: fingerprintChat(context().chat) };
     if (story.completed) {
-        await saveStory({ ...story, ...common, completed: false, paused: false, stageIndex: 4 });
+        await saveStory({ ...story, ...common, completed: false, paused: false, stageIndex: 4, actProgress: { stageIndex: 4, confirmed: [], pending: [], nextOpportunity: '' }, lastTransition: { from: 5, to: 5, reason: 'Финал возобновлён вручную.' } });
         showStatus('Финальный акт снова активен.');
     } else if (story.stageIndex < 4) {
-        await saveStory({ ...story, ...common, stageIndex: 4, paused: false });
+        await saveStory({ ...story, ...common, stageIndex: 4, paused: false, actProgress: { stageIndex: 4, confirmed: [], pending: [], nextOpportunity: '' }, lastTransition: { from: story.stageIndex + 1, to: 5, reason: 'Переход к финалу вручную.' } });
         showStatus('Включён финальный акт. Режиссёр проверит, закрыты ли основные конфликты.');
     } else {
         await saveStory({ ...story, ...common, completed: true, paused: false });
@@ -452,14 +535,17 @@ async function analyzeCurrent(force = false) {
     const ctx = context();
     const original = getStory();
     if (!original || original.completed || original.paused || typeof ctx.generateRaw !== 'function') return;
+    if (!isPersonaCurrent(original, ctx)) { showStatus('Выбрана другая персона. Для неё пересоздайте сюжет или верните прежнюю персону.', true); return; }
     if (!force && !shouldReview(original, ctx.chat)) return;
     const metadata = ctx.chatMetadata;
     const storyId = original.id;
     const totalReplies = countAssistantReplies(ctx.chat);
     const fingerprint = fingerprintChat(ctx.chat);
-    const prompt = buildReviewPrompt(original, ctx.chat, getCharacterCanon(ctx));
+    const personaBinding = getActivePersona(ctx).binding;
+    const prompt = buildReviewPrompt(original, ctx.chat, getCanonForStory(original, ctx));
     const isCurrent = () => context().chatMetadata === metadata
         && getStory() === original
+        && getActivePersona(context()).binding === personaBinding
         && fingerprintChat(context().chat) === fingerprint
         && (!storyId || getStory()?.id === storyId);
 
@@ -485,16 +571,16 @@ async function analyzeCurrent(force = false) {
             showStatus('Обнаружена серьёзная развилка. Перестраиваю оставшиеся сцены…');
             const branchRaw = await ctx.generateRaw({
                 systemPrompt: 'Ты — сценарный редактор. Верни только JSON. Учитывай уже совершённые поступки, не навязывай игроку будущие действия.',
-                prompt: buildReplanPrompt(reviewed, review.deviationReason || review.reason, getCharacterCanon(ctx)),
+                prompt: buildReplanPrompt(reviewed, review.deviationReason || review.reason, getCanonForStory(reviewed, ctx)),
             });
             const replan = parseReplan(branchRaw, reviewed.stageIndex);
             const candidate = applyReplan(reviewed, replan, totalReplies, review.deviationReason || review.reason);
             const replanIssues = validatePlotFit(candidate.plot, {
-                relationship: getCharacterFacts(ctx).relationship,
-                genres: storyGenres(reviewed), idea: reviewed.idea || '',
+                relationship: getRelationshipFacts(ctx),
+                genres: storyGenres(reviewed), idea: reviewed.idea || '', userName: ctx.name1 || '', charName: ctx.name2 || '', canon: getCanonForStory(reviewed, ctx), fromAct: reviewed.stageIndex,
             });
             if (replanIssues.length) throw new Error(`Перестройка противоречит карточке или жанрам: ${replanIssues.join(' ')}`);
-            if (context().chatMetadata !== metadata || getStory() !== reviewed || fingerprintChat(context().chat) !== fingerprint) {
+            if (context().chatMetadata !== metadata || getStory() !== reviewed || fingerprintChat(context().chat) !== fingerprint || getActivePersona(context()).binding !== personaBinding) {
                 showStatus('Диалог изменился во время перестройки; старый план не был перезаписан.');
                 return;
             }
@@ -527,7 +613,7 @@ function onChatChanged() {
 async function onCharacterMessage() {
     const ctx = context();
     const story = getStory();
-    if (!story || story.paused || story.completed) return;
+    if (!story || story.paused || story.completed || !isPersonaCurrent(story, ctx)) return;
     if (busy) {
         pendingReview = true;
         return;
@@ -535,6 +621,8 @@ async function onCharacterMessage() {
     if (getMode(story) === 'count') {
         const next = advanceByCount(story, countAssistantReplies(ctx.chat));
         if (next !== story) {
+            next.actProgress = { stageIndex: next.stageIndex, confirmed: [], pending: [], nextOpportunity: '' };
+            next.lastTransition = { from: story.stageIndex + 1, to: next.stageIndex + 1, reason: 'Переключение по числу ответов персонажа.' };
             await saveStory(next);
             showStatus(`Новый акт (по числу ответов): ${ACT_NAMES[next.stageIndex]}.`);
         }
@@ -562,10 +650,12 @@ async function init() {
         buildGenreSelector();
         document.getElementById('sad-genre-list').addEventListener('change', onGenreChanged);
         document.getElementById('sad-genre-auto').addEventListener('change', onGenreChanged);
+        document.getElementById('sad-genre-search').addEventListener('input', filterGenreList);
         for (const id of ['sad-pace', 'sad-mode', 'sad-review-every', 'sad-adaptive']) {
             document.getElementById(id).addEventListener('change', () => { void updateControls(); });
         }
         ctx.eventSource.on(ctx.event_types.CHAT_CHANGED, onChatChanged);
+        if (ctx.event_types.PERSONA_CHANGED) ctx.eventSource.on(ctx.event_types.PERSONA_CHANGED, onChatChanged);
         ctx.eventSource.on(ctx.event_types.CHARACTER_MESSAGE_RENDERED, () => { void onCharacterMessage(); });
         applyPrompt();
         syncControls();

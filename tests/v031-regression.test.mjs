@@ -48,7 +48,7 @@ test('review saying colleagues/strangers is rejected without confirmed breakup',
 });
 test('romance plus slice-of-life prompt no longer demands antagonist or detective clues',()=>{
   const prompt=generatePlannerPrompt({genres:['romance','slice_of_life'],canon:facts.canon});
-  assert.match(prompt,/НЕ заменяй это расследованием/);
+  assert.match(prompt,/НЕ заменяй выбранный жанр расследованием/);
   assert.match(prompt,/Антагонист НЕ обязателен/);
   assert.match(prompt,/подтверждай это в premise/);
   const inj=buildInjection({plot,genres:['romance','slice_of_life'],stageIndex:0,memory:{relationship:{status:facts.relationship.status}},canonRelationshipStatus:facts.relationship.status},facts.canon);

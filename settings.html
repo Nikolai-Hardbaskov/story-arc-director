@@ -1,18 +1,23 @@
 <div id="sad-root" class="sad-root">
   <div class="inline-drawer">
     <div class="inline-drawer-toggle inline-drawer-header">
-      <b>🎭 Сюжетный режиссёр v0.3.2</b>
+      <b>🎭 Сюжетный режиссёр v0.3.8</b>
       <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
     </div>
     <div class="inline-drawer-content">
       <p class="sad-lead">История с завязкой и финалом. Умный режиссёр следит за выбором игрока и развивает последствия вместо жёсткого сценария.</p>
+      <p class="sad-tip">Самостоятельность персонажа: {{char}} сохраняет собственные желания и границы. Режиссёр не требует ни соглашаться со всем, ни спорить ради драмы.</p>
       <label for="sad-idea">Задумка, тема или пожелания</label>
       <textarea id="sad-idea" rows="3" placeholder="Например: романтический детектив, где исчезают воспоминания; не делать финал обязательно счастливым..."></textarea>
       <fieldset class="sad-genres">
         <legend>Жанры сюжета</legend>
         <label class="sad-check" for="sad-genre-auto"><input id="sad-genre-auto" type="checkbox" checked> Автоподбор по карточке, чату и пожеланиям</label>
-        <p class="sad-tip">Отключите автоподбор, чтобы выбрать до четырёх жанров. Профессия персонажа не навязывает жанр.</p>
+        <p class="sad-tip">Отключите автоподбор, чтобы выбрать до восьми жанров. Профессия персонажа не навязывает жанр.</p>
+        <label class="sad-search-label" for="sad-genre-search">Поиск жанра
+          <input id="sad-genre-search" type="search" placeholder="Например: киберпанк, спорт, романтика" autocomplete="off">
+        </label>
         <div id="sad-genre-list"></div>
+        <p id="sad-genre-empty" class="sad-tip" hidden>Ничего не найдено. Попробуйте другой запрос.</p>
         <div class="sad-genre-footer">
           <span id="sad-genre-count">Автоподбор</span>
           <button type="button" id="sad-suggest-genres" class="menu_button">✨ Предложить жанры</button>
@@ -49,11 +54,24 @@
       <button type="button" id="sad-generate" class="menu_button sad-main">✨ Создать сюжет для этого чата</button>
       <div id="sad-status" class="sad-status" aria-live="polite"></div>
 
+      <p class="sad-tip" id="sad-active-persona"></p>
+      <p class="sad-persona-warning" id="sad-persona-warning" hidden></p>
       <section id="sad-story" class="sad-story" hidden>
         <div class="sad-story-title" id="sad-title"></div>
         <div id="sad-current-label" class="sad-current-label"></div>
         <div id="sad-story-genres" class="sad-genre-summary"></div>
         <p id="sad-scene" class="sad-scene"></p>
+        <section class="sad-progress">
+          <div class="sad-plan-heading">📍 Ход текущего акта</div>
+          <div id="sad-progress-title" class="sad-review-state"></div>
+          <div class="sad-plan-heading">Что уже подтверждено</div>
+          <p id="sad-progress-done" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Что ещё открыто</div>
+          <p id="sad-progress-pending" class="sad-plan-paragraph"></p>
+          <div class="sad-plan-heading">Следующая возможная инициатива персонажа</div>
+          <p id="sad-progress-next" class="sad-plan-paragraph"></p>
+          <p id="sad-transition-reason" class="sad-tip"></p>
+        </section>
         <div class="sad-actions">
           <button type="button" id="sad-prev" class="menu_button" title="Предыдущий акт">← Назад</button>
           <button type="button" id="sad-next" class="menu_button" title="Следующий акт">Далее →</button>
@@ -96,7 +114,7 @@
           <button type="button" id="sad-remove" class="menu_button">Удалить сюжет из чата</button>
         </div>
       </section>
-      <p class="sad-tip">Карточка персонажа задаёт характер, отношения и профессию, но не жанр. Сюжет, память и оценки хранятся в метаданных этого чата. Они не вставляются отдельными сообщениями. Финал считается достигнутым только после смысловой проверки или ручного подтверждения.</p>
+      <p class="sad-tip">Карточка {{char}} и описание активной персоны {{user}} задают личность и контекст, но не решения игрока. При смене персоны новый план требует пересоздания. Профессия не задаёт жанр. Сюжет, память и оценки хранятся в метаданных этого чата. Они не вставляются отдельными сообщениями. Финал считается достигнутым только после смысловой проверки или ручного подтверждения.</p>
     </div>
   </div>
 </div>

@@ -6,6 +6,7 @@ const plot = {title: 'Маяк памяти', premise: 'Город теряет 
 window.mock = {
   reviewMode: 'complete',
   invalidPlanOnce: false,
+  agencyPlanOnce: false,
   rawCalls: [],
   changeChat(){ this.ctx.chatMetadata = {}; this.ctx.chat = []; this.ctx.eventSource.emit('CHAT_CHANGED'); },
   emit(type){ (listeners[type]||[]).forEach(fn => fn()); },
@@ -17,8 +18,8 @@ window.mock = {
 const ctx = {
     extensionSettings:{}, chatMetadata:{}, chat:[], characterId:0, groupId:null,
     characters:[{ data:{description:'Хранитель маяка и парень игрока, спортсмен',personality:'Заботливый и упрямый', scenario:'Пара вместе уже 3 года, расследует тайну маяка'} }],
-    name1:'Игрок',name2:'Хранитель',
-    event_types:{APP_INITIALIZED:'APP_INITIALIZED',CHARACTER_MESSAGE_RENDERED:'CHARACTER_MESSAGE_RENDERED',CHAT_CHANGED:'CHAT_CHANGED'},
+    name1:'Игрок',name2:'Хранитель', powerUserSettings: {persona_description:'Игрок занимается живописью, не любит высоту, дружелюбен.'},
+    event_types:{APP_INITIALIZED:'APP_INITIALIZED',CHARACTER_MESSAGE_RENDERED:'CHARACTER_MESSAGE_RENDERED',CHAT_CHANGED:'CHAT_CHANGED', PERSONA_CHANGED:'PERSONA_CHANGED'},
     eventSource:{on(type,fn){(listeners[type]??=[]).push(fn)}, emit(type){(listeners[type]||[]).forEach(fn => fn())}},
     saveMetadata:async()=>{}, saveSettingsDebounced:()=>{},
     setExtensionPrompt:(key,text)=>{window.mock.prompt=text;},
@@ -28,6 +29,12 @@ const ctx = {
       if(prompt.includes('Ты предлагаешь игроку')) return JSON.stringify({genres:['romance','slice_of_life','sport'],reason:'Пара давно вместе, спортсменство лишь часть его жизни.'});
       if(prompt.includes('Придумай ОРИГИНАЛЬНЫЙ')) {
         if (window.mock.invalidPlanOnce) { window.mock.invalidPlanOnce = false; return JSON.stringify(plot).slice(0, -100); }
+        if (window.mock.agencyPlanOnce) {
+          window.mock.agencyPlanOnce = false;
+          const bad = structuredClone(plot);
+          bad.acts[2].bridge = 'Заметив интерес Игрока к сумке, герой рассказывает о поездке.';
+          return JSON.stringify(bad);
+        }
         return JSON.stringify(plot);
       }
       if(prompt.includes('Ты — НЕ персонаж')) return JSON.stringify({
@@ -35,6 +42,7 @@ const ctx = {
         endingComplete:window.mock.reviewMode==='final', confidence:0.94,
         reason:'Ключ найден, сцена фактически разрешена',summary:'Игрок нашёл ключ и открыл дверь',
         decisions:['Решил открыть дверь'],consequences:['Открылся тайный ход'],openThreads:['Где архив?'],
+        progress:{confirmed:['Ключ найден'],pending:['Остаётся открыть дверь'],nextOpportunity:'Хранитель предложит проверить замок'},
         deviation:window.mock.reviewMode==='branch'?'major':'none',deviationReason:'Герой уничтожил архив вопреки исходному плану',
         relationship:{status:'Пара встречается 3 года',dynamics:'Поддерживают друг друга',changes:['Помог с тренировками'],unresolved:[]}
       });
